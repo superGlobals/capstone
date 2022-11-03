@@ -1,0 +1,74 @@
+<?php
+
+  include "database.php";
+  session_start();  
+  if (isset($_SESSION['locked'])) {
+   $difference = time() - $_SESSION['locked'];
+   if ($difference > 5) {
+     unset($_SESSION['locked']);
+     unset($_SESSION['attempts']);
+   }
+  }
+
+  if (isset($_POST['submit'])) {
+   $username = $_POST['username'];
+   $password = $_POST['password'];
+
+
+   $queryValidate = "SELECT * FROM users WHERE username = '$username' AND password = md5('$password')";
+   $sqlValidate = mysqli_query($connection, $queryValidate);
+
+   if (mysqli_num_rows($sqlValidate) > 0)
+    {
+      $_SESSION['status'] = 'valid';
+
+      echo "<script>window.location.href = 'index.php'</script>";
+    }
+    else
+    {
+      $_SESSION['attempts'] +=1;
+      $_SESSION['error']= 'username/password not found';
+  
+    }
+  }
+ 
+  
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>login</title>
+</head>
+<link rel="stylesheet" type="text/css" href="style.css">
+<body>
+
+  
+  <form action="login.php" method="post">
+    <h2>Login</h2>
+    <?php if (isset($_SESSION['error'])) { ?>
+      <p style="color: black; background-color:#ff9999; padding: 5px;"><?= $_SESSION['error'];?></p>
+    <?php unset($_SESSION['error']);}?>
+  <label>username</label>
+  <input type="text" name="username">
+  <br>
+  <label>password</label>
+  <input type="password" name="password">
+  <br>
+  <?php
+  if ($_SESSION['attempts'] > 2) {
+      $_SESSION['locked'] = time();
+      echo "<p>Please wait for 5 seconds</p>";
+  }
+  else
+  {
+
+  ?>
+
+<button type="submit" name="submit">Login</button>
+<?php   }?>
+ 
+  </form>
+
+</body>
+</html>

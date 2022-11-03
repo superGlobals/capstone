@@ -1,0 +1,108 @@
+<?php
+include 'database.php';
+
+date_default_timezone_set("Asia/Manila");
+
+$time = date("h:i a");
+
+$date = date("m/d/y");
+
+$end_time = date("h:i A", strtotime("+5 seconds", strtotime($time)));
+
+
+$error = "";
+$attempt = 0;
+$username = $userErr = "";
+$password = $passwordErr = "";
+
+if (isset($_POST['submit'])) {
+	if (empty($_POST['username'])) {
+		$userErr = "username is required";
+	}else{
+		$username = $_POST['username'];
+	}
+
+	if (empty($_POST['password'])) {
+		$passwordErr = "password is required";
+	}else{
+		$password = $_POST['password'];
+	}
+
+	if ($username AND $password) {
+		
+		$check_username = mysqli_query($connection, "SELECT * FROM users WHERE  username = '$username'");
+		$check_username = mysqli_num_rows($check_username);
+		if ($check_username > 0) {
+			
+			$row = mysqli_fetch_object($check_username);
+			$id = $row['id'];
+			$db_password = $row['password'];
+			$db_attempt = $row['attempt'];
+
+			$db_log_time = strtotime($row['log_time']);
+			$my_log_time = $row['log_time'];
+
+			$new_time = strtotime($time);
+
+			$db_date = $row['date'];
+			$db_time = $row['time'];
+
+
+			if ($db_log_time <= $new_time) {
+				if ($password == $db_password) {
+					mysqli_query($connection, "UPDATE users SET attempt='0',log_time='' WHERE id='$id'");
+
+					 echo "<script>window.location.href = 'index.php'</script>";
+				}
+			}else{
+				$error = "Login failed";
+				$attempt = $db_attempt + 1;
+
+				if ($attempt >= 3) {
+					$attempt = 3;
+
+					mysqli_query($connection, "UPDATE users SET attempt='$attempt',log_time='$end_time' WHERE id='$id'");
+					$error = "Please wait for <b>$end_time</b>";
+				}else{
+					mysqli_query($connection, "UPDATE users SET attempt='$attempt' WHERE id='$id'");
+					$passwordErr = "Invalid password";
+					$error = "Your login attempt : $attempt";
+				}
+			}
+
+			}else{
+				$error = "Please wait for <b>$my_log_time</b>";
+			}
+
+		}else{
+			$userErr = "Login failed";
+		}
+	}
+
+
+?>
+<style >
+	.error{
+		color: red;
+	}
+</style>
+
+  <form action="" method="post">
+    <h2>Login</h2>
+    
+  <label>username</label>
+  <input type="text" name="username" value="<?php echo $username; ?>">
+  <br>
+  <span class="error"> <?php echo $userErr; ?></span>
+  <label>password</label>
+  <input type="password" name="password">
+  <br>
+    <span class="error"> <?php echo  $passwordErr; ?></span>
+  <a href="register.php">create an account here</a>
+  
+<button type="submit" name="submit">Login</button>
+
+ 
+  </form>
+
+  <span class="error"><?php  echo $error; ?></span>
